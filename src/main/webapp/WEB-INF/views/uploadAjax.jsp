@@ -48,10 +48,43 @@
 				contentType: false,
 				type: "POST",
 				success: function(data){
-					alert(data);
+					var str = "";
+
+					if(checkImageType(data)){
+						str ="<div><a href='displayFile?fileName="+getImageLink(data)+"'>"
+						  +"<img src='displayFile?fileName="+data+"'/></a>"
+						  +data +"</div>";
+					} else{
+						str = "<div><a href='displayFile?fileName="+data+"'>"+getOriginalName(data)+"</a></div>";
+					}
+
+					$(".uploadedList").append(str);
 				}
 			});			
 		});		
+		/* 전송받은 문자열이 이미지 파일인지를 확인 */
+		function checkImageType(fileName){
+			var pattern = /jpg|gif|png|jpeg/i;
+			return fileName.match(pattern);
+		}
+
+		function getOriginalName(fileName){
+			if(checkImageType(fileName)){
+				return;
+			}
+			var idx = fileName.indexOf("_")+1;
+			return fileName.substr(idx);
+		}
+
+		function getImageLink(fileName){
+			if(!checkImageType(fileName)){
+				return;
+			}
+			var front = fileName.substr(0,12);
+			var end = fileName.substr(14);
+
+			return front + end;
+		}
 	</script>
 </body>
 </html>
