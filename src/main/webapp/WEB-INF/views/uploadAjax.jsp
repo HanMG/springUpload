@@ -52,10 +52,12 @@
 
 					if(checkImageType(data)){
 						str ="<div><a href='displayFile?fileName="+getImageLink(data)+"'>"
-						  +"<img src='displayFile?fileName="+data+"'/></a>"
-						  +data +"</div>";
+						  +"<img src='displayFile?fileName="+data+"'/>"
+						  +"</a><small data-src="+data+">(X)</small></div>";
 					} else{
-						str = "<div><a href='displayFile?fileName="+data+"'>"+getOriginalName(data)+"</a></div>";
+						str = "<div><a href='displayFile?fileName="+data+"'>"
+						+getOriginalName(data)+"</a>"
+						+"<small data-src="+data+">(X)</small></div>";
 					}
 
 					$(".uploadedList").append(str);
@@ -67,7 +69,7 @@
 			var pattern = /jpg|gif|png|jpeg/i;
 			return fileName.match(pattern);
 		}
-
+		/* 실제파일명 */
 		function getOriginalName(fileName){
 			if(checkImageType(fileName)){
 				return;
@@ -75,7 +77,7 @@
 			var idx = fileName.indexOf("_")+1;
 			return fileName.substr(idx);
 		}
-
+		/* 생성된 파일명 */
 		function getImageLink(fileName){
 			if(!checkImageType(fileName)){
 				return;
@@ -85,6 +87,24 @@
 
 			return front + end;
 		}
+
+		// data-src의 값을 deleteFile로 보냄
+		$(".uploadedList").on("click","small",function(event){
+			var that = $(this);
+
+			$.ajax({
+				url:"deleteFile",
+				type:"post",
+				data:{fileName:$(this).attr("data-src")},
+				dataType:"text",
+				success:function(result){
+					if(result == 'deleted'){
+						alert("deleted");
+						that.parent("div").remove();
+					}
+				}
+			});				
+		});
 	</script>
 </body>
 </html>
