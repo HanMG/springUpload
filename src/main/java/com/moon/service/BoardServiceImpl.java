@@ -20,9 +20,19 @@ public class BoardServiceImpl implements BoardService{
 	private BoardDAO dao;
 	
 	// 게시글 등록
+	@Transactional
 	@Override
-	public void regist(BoardVO board) throws Exception {		
-		dao.create(board);				
+	public void regist(BoardVO board) throws Exception {
+		
+		dao.create(board);
+		
+		String[] files = board.getFiles();
+		
+		if(files == null) {return;}
+		
+		for(String fileName : files) {
+			dao.addAttach(fileName);
+		}
 	}
 
 	// 게시글 읽기
