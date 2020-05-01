@@ -4,9 +4,42 @@
 	pageEncoding="UTF-8"%>
 
 <%@ include file="../include/header.jsp"%>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-
 <!-- main content -->
+<script
+	src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="/resources/js/upload.js"></script>
+<style type="text/css">
+.popup {
+	position: absolute;
+}
+
+.back {
+	background-color: gray;
+	opacity: 0.5;
+	width: 100%;
+	height: 300%;
+	overflow: hidden;
+	z-index: 1101;
+}
+
+.front {
+	z-index: 1110;
+	opacity: 1;
+	boarder: 1px;
+	margin: auto;
+}
+
+.show {
+	position: relative;
+	max-width: 1200px;
+	max-height: 800px;
+	overflow: auto;
+}
+</style>
+<div class='popup back' style="display:none;"></div>
+    <div id="popup_front" class='popup front' style="display:none;">
+     <img id="popup_img">
+</div>
 <section class="content">
 	<div class="row">
 		<!-- left column -->
@@ -40,9 +73,15 @@
 						</div>
 					</div>
 					<div class="box-footer">
+						<ul class="mailbox-attachments clearfix uploadedList">
+						</ul>
+						<div>
+							<hr>
+						</div>
 						<button type="button" class="btn btn-warning" id="modifyBtn">Modify</button>
 						<button type="button" class="btn btn-danger" id="removeBtn">Remove</button>
-						<button type="button" class="btn btn-primary" id="goListBtn">Go List</button>
+						<button type="button" class="btn btn-primary" id="goListBtn">Go
+							List</button>
 					</div>
 
 				</div>
@@ -70,7 +109,8 @@
 	</div>
 	<ul class="timeline">
 		<li class="time-label" id="repliesDiv"><span class="bg-green">Replies
-				List <small id="replycntSmall"> [${boardVO.replycnt}] </small></span></li>
+				List <small id="replycntSmall"> [${boardVO.replycnt}] </small>
+		</span></li>
 	</ul>
 	<div class="text-center">
 		<ul id="pagination" class="pagination pagination-sm no-margin">
@@ -98,8 +138,9 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</div>	
 </section>
+<!-- 댓글리스트 핸들바템플릿 -->
 <script id="template" type="text/x-handlebars-template">
 {{#each .}}
 <li class="replyLi" data-rno={{rno}}>
@@ -117,10 +158,19 @@
 </li>
 {{/each}}
 </script>
+<!-- 업로드파일 핸들바템플릿 -->
+<script id="templateAttach" type="text/x-handlebars-template">
+		<li>
+			<span class="mailbox-attachment-icon has-img"><img src="{{imgsrc}}" alt="Attachment"></span>
+			<div class="mailbox-attachment-info">
+				<a href="{{getLink}}" class="mailbox-attachment-name">{{fileName}}</a>				
+			</div>
+		</li>
+</script>
 <script>
 	Handlebars.registerHelper("prettifyDate", function(timeValue) {
 		var dateObj = new Date(timeValue);
-		var year = dateObj.getFullYear();		
+		var year = dateObj.getFullYear();
 		var month = dateObj.getMonth() + 1;
 		var date = dateObj.getDate();
 		return year + "/" + month + "/" + date;
@@ -134,7 +184,7 @@
 		$(".replyLi").remove();
 		target.after(html);
 	}
-	
+
 	var bno = ${boardVO.bno};
 
 	var replyPage = 1;
@@ -146,7 +196,7 @@
 			printPaging(data.pageMaker, $(".pagination"));
 
 			$("#modifyModal").modal('hide');
-			$("#replycntSmall").html("["+data.pageMaker.totalCount+"]");
+			$("#replycntSmall").html("[" + data.pageMaker.totalCount + "]");
 
 		});
 	}
@@ -193,6 +243,7 @@
 
 	});
 
+	// 댓글 추가 
 	$("#replyAddBtn").on("click", function() {
 
 		var replyerObj = $("#newReplyWriter");
@@ -208,7 +259,11 @@
 				"X-HTTP-Method-Override" : "POST"
 			},
 			dataType : 'text',
-			data : JSON.stringify({bno:bno, replyer:replyer, replytext:replytext}),
+			data : JSON.stringify({
+				bno : bno,
+				replyer : replyer,
+				replytext : replytext
+			}),
 			success : function(result) {
 				console.log("result: " + result);
 				if (result == 'success') {
@@ -222,6 +277,7 @@
 		});
 	});
 
+	// 댓글 리스트 출력
 	$(".timeline").on("click", ".replyLi", function(event) {
 
 		var reply = $(this);
@@ -231,6 +287,7 @@
 
 	});
 
+	// 댓글 수정	
 	$("#replyModBtn").on("click", function() {
 
 		var rno = $(".modal-title").html();
@@ -243,7 +300,9 @@
 				"Content-Type" : "application/json",
 				"X-HTTP-Method-Override" : "PUT"
 			},
-			data : JSON.stringify({replytext:replytext}),
+			data : JSON.stringify({
+				replytext : replytext
+			}),
 			dataType : 'text',
 			success : function(result) {
 				console.log("result: " + result);
@@ -255,6 +314,7 @@
 		});
 	});
 
+	// 댓글 삭제
 	$("#replyDelBtn").on("click", function() {
 
 		var rno = $(".modal-title").html();
@@ -276,6 +336,43 @@
 				}
 			}
 		});
+	});
+
+	// 업로드된 파일을 시간순으로 가져와서 출력
+	var bno = ${boardVO.bno};
+	var template = Handlebars.compile($("#templateAttach").html());
+
+	$.getJSON("/sboard/getAttach/" + bno, function(list) {
+		$(list).each(function() {
+			var fileInfo = getFileInfo(this);
+
+			var html = template(fileInfo);
+
+			$(".uploadedList").append(html);
+		});
+	});
+
+	// 파일 클릭 시 화면 위에 원본 이미지 파일을 출력
+	$(".uploadedList").on("click", ".mailbox-attachment-info a",
+			function(event) {
+				var fileLink = $(this).attr("href");
+
+				if (checkImageType(fileLink)) {
+					// 화면이동 못하게
+					event.preventDefault();
+
+					var imgTag = $("#popup_img");
+					imgTag.attr("src", fileLink);
+
+					console.log(imgTag.attr("src"));
+
+					$(".popup").show('slow');
+					imgTag.addClass("show");
+				}
+			});
+
+	$("#popup_img").on("click", function() {
+		$(".popup").hide("slow");
 	});
 </script>
 <!-- 게시판 버튼처리 -->
@@ -301,6 +398,6 @@
 			formObj.attr("action", "/sboard/list");
 			formObj.submit();
 		});
-	});	
+	});
 </script>
 <%@ include file="../include/footer.jsp"%>
