@@ -3,6 +3,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 
 <%@ include file="../include/header.jsp" %>
+<script
+	src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="/resources/js/upload.js"></script>
 
 	<!-- main content -->
 	<section class="content">
@@ -37,6 +40,11 @@
 								</div>
 							</div>
 							<div class="box-footer">
+								<ul class="mailbox-attachments clearfix uploadedList">
+								</ul>
+								<div>
+									<hr>
+								</div>
 								<button type="button" class="btn btn-primary">SAVE</button>
 								<button type="button" class="btn btn-warning">CANCEL</button>
 							</div>
@@ -46,6 +54,53 @@
 			</div>
 		</div>
 	</section>
+<!-- 업로드파일 핸들바템플릿 -->
+<script id="templateAttach" type="text/x-handlebars-template">
+		<li>
+			<span class="mailbox-attachment-icon has-img"><img src="{{imgsrc}}" alt="Attachment"></span>
+			<div class="mailbox-attachment-info">
+				<a href="{{getLink}}" class="mailbox-attachment-name">{{fileName}}</a>
+				<a href="{{fullName}}" class="btn btn-default btn-xs pull-right delbtn">
+					<i class="fa fa-fw fa-remove"></i>
+				</a>
+			</div>
+		</li>
+</script>	
+<script type="text/javascript">
+//업로드된 파일을 시간순으로 가져와서 출력
+var bno = ${boardVO.bno};
+var template = Handlebars.compile($("#templateAttach").html());
+
+$.getJSON("/sboard/getAttach/" + bno, function(list) {
+	$(list).each(function() {
+		var fileInfo = getFileInfo(this);
+
+		var html = template(fileInfo);
+
+		$(".uploadedList").append(html);
+	});
+});
+
+//data-src의 값을 deleteFile로 보냄
+$(".uploadedList").on("click", ".delbtn", function(event){
+	
+	event.preventDefault();
+	
+	var that = $(this);
+	 
+	$.ajax({
+	   url:"/deleteFile",
+	   type:"post",
+	   data: {fileName:$(this).attr("href")},
+	   dataType:"text",
+	   success:function(result){
+		   if(result == 'deleted'){
+			   that.closest("li").remove();
+		   }
+	   }
+   });
+});
+</script>
 	<!-- 버튼처리 -->
 	<script>
 		$(document).ready(function(){
